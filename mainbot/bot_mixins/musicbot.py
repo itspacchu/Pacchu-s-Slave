@@ -37,8 +37,8 @@ class MusicMixin(DiscordInit, commands.Cog):
             with youtube_dl.YoutubeDL(ytdl_format_options) as ydl:
                 info = ydl.extract_info(flavoururls[flavour], download=False)
                 url = info['formats'][0]['url']
-        embed = discord.Embed(title=f"Playing {flavour} + lofi", colour=discord.Colour(0xff5065), url=url)
-        embed.set_image(url=f"https://i.ytimg.com/vi/{flavoururls[flavour][-11:]}/maxresdefault.jpg")
+        embed = discord.Embed(title=f"**Playing** {flavour} lofi", colour=discord.Colour(0xff5065), url=url)
+        embed.set_thumbnail(url=f"https://i.ytimg.com/vi/{flavoururls[flavour][-11:]}/maxresdefault.jpg")
         embed.set_author(name=ctx.message.author.name,icon_url=ctx.message.author.avatar_url)
         embed.set_footer(text=self.name, icon_url=self.avatar)
         await ctx.send(embed=embed,components=[[Button(style=ButtonStyle.red, label="Stop")],])
@@ -59,7 +59,7 @@ class MusicMixin(DiscordInit, commands.Cog):
         else:
             currentpod = self.lastPod
             try:
-                await self.playPodcast(ctx, podepi=podepi, currentpod=currentpod)
+                
                 try:
                     desc = currentpod.GetEpisodeDetails(podepi)['summary'][:300]
                 except:
@@ -68,7 +68,7 @@ class MusicMixin(DiscordInit, commands.Cog):
                     title = currentpod.GetEpisodeDetails(podepi)['title']
                 except:
                     title = "Title unavailable"
-                    
+                   
                 embed = discord.Embed(title=title,colour=find_dominant_color(currentpod.PodcastImage(podepi)), url=currentpod.GetEpisodeDetails(podepi)['link'],description=desc,inline=False)
                 try:
                     embed.set_thumbnail(url=currentpod.PodcastImage(podepi))
@@ -78,7 +78,13 @@ class MusicMixin(DiscordInit, commands.Cog):
                     embed.set_footer(text=currentpod.GetEpisodeDetails(podepi)['title'],icon_url=self.avatar)
                 except:
                     pass
-                await ctx.send(embed=embed, components=[[Button(style=ButtonStyle.red, label="Stop")],])
+                
+                try:
+                    await ctx.send(embed=embed, components=[[Button(style=ButtonStyle.red, label="Stop"),Button(style=ButtonStyle.gray, label="Next Episode")],])
+                except:
+                    pass
+                
+                await self.playPodcast(ctx, podepi=podepi, currentpod=currentpod)
             except AttributeError:
                 await ctx.send("> No Episode found")
 
@@ -187,9 +193,9 @@ class MusicMixin(DiscordInit, commands.Cog):
                 await context.author.voice.channel.connect()
                 
         _source_ = currentpod.GetEpisodeMp3(podepi)
-        await self.playmp3source(_source_,context=context)
+        await self.playmp3source(_source_,context=context,epno=podepi)
             
-    async def playmp3source(self,mp3link:str,context):
+    async def playmp3source(self,mp3link:str,context,**kwargs):
         ctx = context
         voice_client: discord.VoiceClient = discord.utils.get(self.client.voice_clients, guild=ctx.guild)
         audio_source = discord.FFmpegPCMAudio(mp3link)
@@ -209,11 +215,10 @@ class MusicMixin(DiscordInit, commands.Cog):
                 res = await self.client.wait_for("button_click")
                 if(await ButtonProcessor(ctx, res, "Stop")):
                     await ctx.invoke(self.client.get_command('stop'))
+                    await res.respond(content="> stopping!")
                     break
-                elif(await ButtonProcessor(ctx, res, "Pause")):
-                    await ctx.invoke(self.client.get_command('pause'))
-                elif(await ButtonProcessor(ctx, res, "Resume")):
-                    await ctx.invoke(self.client.get_command('resume'))
+                elif(await ButtonProcessor(ctx, res, "Next Episode")):
+                    await ctx.invoke(self.client.get_command('podplay'),epno=kwargs.get('epno',0)+1)
             else:
                 await ctx.voice_client.disconnect()
                 break

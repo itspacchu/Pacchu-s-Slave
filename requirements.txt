@@ -72,7 +72,6 @@ simplejson==3.17.2
 tqdm==4.61.0
 uritemplate==3.0.1
 urllib3==1.26.4
-webp==0.1.1
 websocket-client==0.44.0
 youtube-dl==2021.5.16
 ytdl==1.0.0rc5
